@@ -18,7 +18,7 @@ Intezer plugin for Volatility 3 - memory dump analysis using Intezer.
 	```shell
 	pip install requests tenacity
 	```
-- Download the [plugin file `intezer.py`](https://raw.githubusercontent.com/intezer/intezer-volatility-plugin/main/intezer.py) from this repository and store it in Volatility's Windows plugins directory `volatility3/volatility3/framework/plugins/windows/intezer.py`
+- Download the plugin file [`intezer.py`](https://raw.githubusercontent.com/intezer/intezer-volatility-plugin/main/intezer.py) from this repository and store it in Volatility's Windows plugins directory `volatility3/volatility3/framework/plugins/windows/intezer.py`
 - Get your Intezer API key from https://analyze.intezer.com/account-details
 - Create an empty output directory. *Defining an output directory is critical. The plugin stores dump files and cache files. You can remove it after execution.*
 - From the `volatility3` directory, execute the plugin:
