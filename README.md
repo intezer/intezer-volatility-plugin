@@ -28,12 +28,18 @@ Intezer plugin for Volatility 3 - memory dump analysis using Intezer.
 - The plugin outputs the scan URL to view it in the Intezer web console. You also can find your scan history at https://analyze.intezer.com/history?tab=endpoint.
 
 ## Troubleshooting
-If you encounter an issue, you can execute the plugin with the verbose flag `-vv` to display all the logs
-```shell
-python vol.py -f [memdump] -o [output-dir] -vv windows.intezer --intezer-key [api-key]
-```
-Or write all logs into a file using the `-l` option
-```shell
-python vol.py -f [memdump] -o [output-dir] -l intezer-volatility-plugin-log.txt windows.intezer --intezer-key [api-key]
-```
-Then contact us at support@intezer.com and attach the complete log.
+- Ensure volatility can process the memory image by running the `pslist` command.
+	```shell
+	python vol.py -f [memdump] windows.pslist
+	```
+- Ensure the output directory you defined exists and empty.
+- Contact Intezer's support:
+	- Execute the plugin with the verbose flag `-vv` to display all the logs
+		```shell
+		python vol.py -f [memdump] -o [output-dir] -vv windows.intezer --intezer-key [api-key]
+		```
+	- Or write all logs into a file using the `-l` option
+		```shell
+		python vol.py -f [memdump] -o [output-dir] -l intezer-volatility-plugin-log.txt windows.intezer --intezer-key [api-key]
+		```
+	- Then contact us at support@intezer.com and attach the complete log.
