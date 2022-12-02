@@ -28,11 +28,14 @@ Intezer plugin for Volatility 3 - memory dump analysis using Intezer.
 - The plugin outputs the scan URL to view it in the Intezer web console. You also can find your scan history at https://analyze.intezer.com/history?tab=endpoint.
 
 ## Troubleshooting
+- The plugin communicates with the Intezer API. Ensure it can access `analyze.intezer.com` via port 443 (HTTPS).
+- Ensure you have sufficient Intezer scan quota. Each memory scan consumes one endpoint scan quota from your Intezer account.
 - Ensure volatility can process the memory image by running the `pslist` command.
 	```shell
 	python vol.py -f [memdump] windows.pslist
 	```
 - Ensure the output directory you defined exists and empty.
+- To use the plugin with a dedicated Intezer instance specify `--intezer-instance-url [dedicated-instance-url]`.
 - Contact Intezer's support:
 	- Execute the plugin with the verbose flag `-vv` to display all the logs
 		```shell
