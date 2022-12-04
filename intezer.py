@@ -492,16 +492,16 @@ class Intezer(interfaces.plugins.PluginInterface):
 
             pid = dump_info['PID']
             loaded_module_info = dict(image_type=processes_info[pid]['image_type'],
-                                      base_address=dump_info['Base'],
-                                      mapped_size_in_bytes=dump_info['size'],
-                                      file_path=dump_info['Path'])
+                                      base_address=(dump_info['Base'] or 0),
+                                      mapped_size_in_bytes=(dump_info['size'] or 0),
+                                      file_path=(dump_info['Path'] or 'N/A'))
             loaded_modules_info[pid].append(loaded_module_info)
         return loaded_modules_info
 
     @staticmethod
     def _build_injected_modules_info_dict(malfind_list: typing.List[dict], max_file_size: int) -> typing.List[dict]:
         injected_modules_info = [
-            dict(base_address=malfind_record['Start VPN'], pid=malfind_record['PID'])
+            dict(base_address=(malfind_record['Start VPN'] or 0), pid=malfind_record['PID'])
             for malfind_record in malfind_list
             if malfind_record.get('size', sys.maxsize) <= max_file_size and not malfind_record['is_headerless']]
 
