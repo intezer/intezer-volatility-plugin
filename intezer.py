@@ -470,7 +470,7 @@ class Intezer(interfaces.plugins.PluginInterface):
 
                     headerless_dump_file_path_by_sha256[malfind_record['sha256']] = malfind_record['dump_file_path']
 
-                elif malfind_record['is_headerless']:
+                elif not malfind_record['is_headerless']:
                     vollog.warning('Injected PE found with malfind {}, {}'.format(
                         malfind_record['dump_file_path'], malfind_record['sha256']))
                     injected_module_dump_file_path_by_sha256[malfind_record['sha256']] = malfind_record[
