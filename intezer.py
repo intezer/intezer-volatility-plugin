@@ -212,11 +212,11 @@ class Intezer(interfaces.plugins.PluginInterface):
                                         description='Max file size to send to upload to Intezer in MB',
                                         default=50,
                                         optional=True),
-            requirements.BooleanRequirement(name='use-cache',
-                                            description='Store and load volatility command output in cache files to '
+            requirements.StringRequirement(name='use-cache',
+                                           description='Store and load volatility command output in cache files to '
                                                         'speed up analysis',
-                                            default=False,
-                                            optional=True)
+                                           default='false',
+                                           optional=True)
         ]
 
     def _get_intezer_api_key(self):
@@ -552,7 +552,7 @@ class Intezer(interfaces.plugins.PluginInterface):
     def run(self):
         # Extracting relevant parameters
         max_file_size = min(self.config['max-file-size'], 150) * 1024 * 1024
-        use_cache = self.config['use-cache']
+        use_cache = self.config['use-cache'].lower() == 'true'
         intezer_url = self.config.get('intezer-instance-url')
         intezer_key = self._get_intezer_api_key()
 
