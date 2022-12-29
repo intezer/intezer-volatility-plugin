@@ -232,6 +232,13 @@ class Intezer(interfaces.plugins.PluginInterface):
         output_dir = os.path.dirname(file_handle._name)
         file_handle.close()
 
+        if len(os.listdir(output_dir)) != 0:
+            raise Exception(f'Output directory error. '
+                            f'Please verify: \n'
+                            f'1. You sent an output path as parameter.\n'
+                            f'2. Your given output directory path is empty')
+
+
         full_temp_file_path = os.path.join(output_dir, file_handle.preferred_filename)
         if os.path.isfile(full_temp_file_path):
             try:
