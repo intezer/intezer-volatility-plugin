@@ -238,7 +238,6 @@ class Intezer(interfaces.plugins.PluginInterface):
                             f'1. You sent an output path as parameter.\n'
                             f'2. Your given output directory path is empty')
 
-
         full_temp_file_path = os.path.join(output_dir, file_handle.preferred_filename)
         if os.path.isfile(full_temp_file_path):
             try:
