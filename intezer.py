@@ -211,7 +211,12 @@ class Intezer(interfaces.plugins.PluginInterface):
             requirements.IntRequirement(name='max-file-size',
                                         description='Max file size to send to upload to Intezer in MB',
                                         default=50,
-                                        optional=True)
+                                        optional=True),
+            requirements.StringRequirement(name='use-cache',
+                                           description='Store and load volatility command output in cache files to '
+                                                        'speed up analysis',
+                                           default='false',
+                                           optional=True)
         ]
 
     def _get_intezer_api_key(self):
@@ -224,7 +229,7 @@ class Intezer(interfaces.plugins.PluginInterface):
 
         return api_key
 
-    def _get_output_dir(self) -> typing.AnyStr:
+    def _get_output_dir(self, use_cache: bool) -> typing.AnyStr:
         """Getting the output directory of the dumped files. The output dir isn't accessible by default, so we're using
         a hack, where we write a temp file, and use the file handle to get its path"""
         temp_filename = 'intezer-temp.txt'
@@ -295,8 +300,9 @@ class Intezer(interfaces.plugins.PluginInterface):
 
         return result
 
-    def _get_env_vars_info(self, output_dir: str):
-        env_vars = self._run_volatility_command_and_get_info(envars.Envars, output_dir, add_pid=False)
+    def _get_env_vars_info(self, output_dir: str, use_cache: bool):
+        env_vars = self._run_volatility_command_and_get_info(envars.Envars, output_dir, use_cache=use_cache,
+                                                             add_pid=False)
 
         computer_name = None
         username_by_pid = dict()
@@ -314,8 +320,11 @@ class Intezer(interfaces.plugins.PluginInterface):
 
         return computer_name, username_by_pid
 
-    def _get_image_info(self, output_dir: str):
-        info_records = self._run_volatility_command_and_get_info(info.Info, output_dir, add_pid=False)
+    def _get_image_info(self, output_dir: str, use_cache: bool):
+        info_records = self._run_volatility_command_and_get_info(info.Info,
+                                                                 output_dir,
+                                                                 use_cache=use_cache,
+                                                                 add_pid=False)
         image_info = {}
         for record in info_records:
             if record['Variable'] == 'Is64Bit':
@@ -491,6 +500,12 @@ class Intezer(interfaces.plugins.PluginInterface):
                 continue
 
             pid = dump_info['PID']
+
+            if pid not in processes_info:
+                raise Exception(
+                    'Information mismatch. Ensure you specify an output directory using "-o [output-dir]", '
+                    'that it exists, and empty.')
+
             loaded_module_info = dict(image_type=processes_info[pid]['image_type'],
                                       base_address=(dump_info['Base'] or 0),
                                       mapped_size_in_bytes=(dump_info['size'] or 0),
@@ -537,13 +552,14 @@ class Intezer(interfaces.plugins.PluginInterface):
     def run(self):
         # Extracting relevant parameters
         max_file_size = min(self.config['max-file-size'], 150) * 1024 * 1024
+        use_cache = self.config['use-cache'].lower() in ['true', '1']
         intezer_url = self.config.get('intezer-instance-url')
         intezer_key = self._get_intezer_api_key()
 
         # Extracting the output dir as we need it to access the dump files and cached results
-        output_dir = self._get_output_dir()
+        output_dir = self._get_output_dir(use_cache)
 
-        image_info = self._get_image_info(output_dir)
+        image_info = self._get_image_info(output_dir, use_cache)
 
         with IntezerProxy(intezer_url, intezer_key) as proxy:  # type: IntezerProxy
 
@@ -559,10 +575,11 @@ class Intezer(interfaces.plugins.PluginInterface):
 
             try:
                 # Extracting relevant info from env vars
-                computer_name, username_by_pid = self._get_env_vars_info(output_dir)
+                computer_name, username_by_pid = self._get_env_vars_info(output_dir, use_cache)
 
                 # Get and dump DLLs
-                dll_list = self._run_volatility_command_and_get_info(dlllist.DllList, output_dir, enable_dump=True)
+                dll_list = self._run_volatility_command_and_get_info(dlllist.DllList, output_dir, use_cache=use_cache,
+                                                                     enable_dump=True)
 
                 # Organizing dlls by pid
                 dlls_by_pid = {pid: list(dlls_) for pid, dlls_ in itertools.groupby(dll_list, lambda row: row['PID'])}
@@ -571,7 +588,8 @@ class Intezer(interfaces.plugins.PluginInterface):
                 processes_info = self._get_processes(username_by_pid, dlls_by_pid)
 
                 # Get and dump injections using malfind
-                malfind_list = self._run_volatility_command_and_get_info(malfind.Malfind, output_dir, enable_dump=True)
+                malfind_list = self._run_volatility_command_and_get_info(malfind.Malfind, output_dir, enable_dump=True,
+                                                                         use_cache=use_cache)
 
                 # Organizing dump data for upload
                 dll_dump_path_by_sha256, headerless_dump_path_by_sha256, injected_module_dump_path_by_sha256 = \
@@ -651,8 +669,9 @@ class Intezer(interfaces.plugins.PluginInterface):
                 end_reason = END_REASONS['FAILED']
             except:
                 vollog.exception(
-                    'Error during execution. To identify the issue, run in verbose mode using -vv and share the output '
-                    'with support@intezer.com '
+                    'Error during execution. Ensure you specify an output directory using `-o [output-dir]`, that it '
+                    'exists, and empty. To identify the issue, run in verbose mode using -vv and share the output with '
+                    'support@intezer.com '
                     '`vol.py -f [memdump] -o [output-dir] -vv windows.intezer.Intezer --intezer-key [api-key]`')
                 end_reason = END_REASONS['FAILED']
 
