@@ -491,10 +491,17 @@ class Intezer(interfaces.plugins.PluginInterface):
                 continue
 
             pid = dump_info['PID']
+
+            if pid not in processes_info:
+                raise Exception(
+                    'Information mismatch. Ensure you specify an output directory using "-o [output-dir]", '
+                    'that it exists, and empty.')
+
             loaded_module_info = dict(image_type=processes_info[pid]['image_type'],
                                       base_address=(dump_info['Base'] or 0),
                                       mapped_size_in_bytes=(dump_info['size'] or 0),
                                       file_path=(dump_info['Path'] or 'N/A'))
+
             loaded_modules_info[pid].append(loaded_module_info)
         return loaded_modules_info
 
@@ -651,8 +658,9 @@ class Intezer(interfaces.plugins.PluginInterface):
                 end_reason = END_REASONS['FAILED']
             except:
                 vollog.exception(
-                    'Error during execution. To identify the issue, run in verbose mode using -vv and share the output '
-                    'with support@intezer.com '
+                    'Error during execution. Ensure you specify an output directory using `-o [output-dir]`, that it '
+                    'exists, and empty. To identify the issue, run in verbose mode using -vv and share the output with '
+                    'support@intezer.com '
                     '`vol.py -f [memdump] -o [output-dir] -vv windows.intezer.Intezer --intezer-key [api-key]`')
                 end_reason = END_REASONS['FAILED']
 
