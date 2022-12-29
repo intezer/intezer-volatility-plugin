@@ -552,7 +552,7 @@ class Intezer(interfaces.plugins.PluginInterface):
     def run(self):
         # Extracting relevant parameters
         max_file_size = min(self.config['max-file-size'], 150) * 1024 * 1024
-        use_cache = self.config['use-cache'].lower() == 'true'
+        use_cache = self.config['use-cache'].lower() in ['true', '1']
         intezer_url = self.config.get('intezer-instance-url')
         intezer_key = self._get_intezer_api_key()
 
