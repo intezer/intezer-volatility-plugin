@@ -506,10 +506,12 @@ class Intezer(interfaces.plugins.PluginInterface):
                     'Information mismatch. Ensure you specify an output directory using "-o [output-dir]", '
                     'that it exists, and empty.')
 
+            file_path = dump_info['Path'] if isinstance(dump_info.get('Path'), str) and dump_info.get('Path') else 'N/A'
+
             loaded_module_info = dict(image_type=processes_info[pid]['image_type'],
                                       base_address=(dump_info['Base'] or 0),
                                       mapped_size_in_bytes=(dump_info['size'] or 0),
-                                      file_path=(dump_info['Path'] or 'N/A'))
+                                      file_path=file_path)
             loaded_modules_info[pid].append(loaded_module_info)
         return loaded_modules_info
 
