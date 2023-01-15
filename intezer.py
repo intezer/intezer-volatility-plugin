@@ -489,8 +489,7 @@ class Intezer(interfaces.plugins.PluginInterface):
                 headerless_dump_file_path_by_sha256,
                 injected_module_dump_file_path_by_sha256)
 
-    @staticmethod
-    def _build_loaded_modules_info_dict(dll_list: typing.List[dict], processes_info: dict, max_file_size: int) -> dict:
+    def _build_loaded_modules_info_dict(self, dll_list: typing.List[dict], processes_info: dict, max_file_size: int) -> dict:
         loaded_modules_info = defaultdict(list)
         for dump_info in dll_list:
             if not dump_info.get('size'):
@@ -506,14 +505,23 @@ class Intezer(interfaces.plugins.PluginInterface):
                     'Information mismatch. Ensure you specify an output directory using "-o [output-dir]", '
                     'that it exists, and empty.')
 
-            file_path = dump_info['Path'] if isinstance(dump_info.get('Path'), str) and dump_info.get('Path') else 'N/A'
+            loaded_module_info = self._build_loaded_module_info(processes_info[pid]['image_type'], dump_info)
 
-            loaded_module_info = dict(image_type=processes_info[pid]['image_type'],
-                                      base_address=(dump_info['Base'] or 0),
-                                      mapped_size_in_bytes=(dump_info['size'] or 0),
-                                      file_path=file_path)
             loaded_modules_info[pid].append(loaded_module_info)
         return loaded_modules_info
+
+    @staticmethod
+    def _build_loaded_module_info(image_type: str, dump_info: dict) -> dict:
+        file_path = dump_info['Path'] if isinstance(dump_info.get('Path'), str) and dump_info.get('Path') else 'N/A'
+        base_address = dump_info['Base'] if isinstance(dump_info.get('Base'), int) and dump_info.get('Base') else 0
+        mapped_size_in_bytes = dump_info['size'] if isinstance(dump_info.get('size'), int) and dump_info.get('size') else 0
+
+        return dict(
+            file_path=file_path,
+            base_address=base_address,
+            mapped_size_in_bytes=mapped_size_in_bytes,
+            image_type=image_type
+        )
 
     @staticmethod
     def _build_injected_modules_info_dict(malfind_list: typing.List[dict], max_file_size: int) -> typing.List[dict]:
