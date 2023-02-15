@@ -286,7 +286,10 @@ class Intezer(interfaces.plugins.PluginInterface):
             def visitor(item_node: renderers.TreeNode, _):
                 rows.append(item_node.values)
 
-            treegrid.populate(visitor)
+            try:
+                treegrid.populate(visitor)
+            except exceptions.PagedInvalidAddressException:
+                vollog.exception('Exception during plugin execution might cause partial results')
 
             column_names = [c.name for c in treegrid.columns]
             result = [dict(zip(column_names, row)) for row in rows]
