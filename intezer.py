@@ -304,22 +304,27 @@ class Intezer(interfaces.plugins.PluginInterface):
         return result
 
     def _get_env_vars_info(self, output_dir: str, use_cache: bool):
-        env_vars = self._run_volatility_command_and_get_info(envars.Envars, output_dir, use_cache=use_cache,
-                                                             add_pid=False)
-
-        computer_name = None
-        username_by_pid = dict()
-
-        for env_row in env_vars:
-            var_name = env_row['Variable']
-            var_value = env_row['Value']
-
-            if var_name == 'COMPUTERNAME' and not computer_name:
-                computer_name = var_value
-                continue
-
-            if var_name == 'USERNAME' and 'PID' in env_row:
-                username_by_pid[int(env_row['PID'])] = var_value
+        try:
+            env_vars = self._run_volatility_command_and_get_info(envars.Envars, output_dir, use_cache=use_cache,
+                                                                 add_pid=False)
+    
+            computer_name = None
+            username_by_pid = dict()
+    
+            for env_row in env_vars:
+                var_name = env_row['Variable']
+                var_value = env_row['Value']
+    
+                if var_name == 'COMPUTERNAME' and not computer_name:
+                    computer_name = var_value
+                    continue
+    
+                if var_name == 'USERNAME' and 'PID' in env_row:
+                    username_by_pid[int(env_row['PID'])] = var_value
+        
+        # In case of failure, we can proceed without this information
+        except Exception:
+            return 'N/A', dict()
 
         return computer_name, username_by_pid
 
