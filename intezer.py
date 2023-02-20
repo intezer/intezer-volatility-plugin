@@ -289,7 +289,7 @@ class Intezer(interfaces.plugins.PluginInterface):
             try:
                 treegrid.populate(visitor)
             except exceptions.PagedInvalidAddressException:
-                vollog.exception('Exception during plugin execution might cause partial results')
+                vollog.debug('Exception during plugin execution might cause partial results', exc_info=True)
 
             column_names = [c.name for c in treegrid.columns]
             result = [dict(zip(column_names, row)) for row in rows]
@@ -354,37 +354,40 @@ class Intezer(interfaces.plugins.PluginInterface):
                                                  filter_func=filter_func)
         processes_info = dict()
         for proc in processes:
-            pid = proc.UniqueProcessId
-
             try:
-                cmdline_ = cmdline.CmdLine.get_cmdline(self.context, kernel.symbol_table_name, proc)
-            except exceptions.InvalidAddressException:
-                cmdline_ = None
+                pid = proc.UniqueProcessId
 
-            process_path = 'N/A'
-            if dll_by_pid.get(pid):
-                process_path = dll_by_pid[pid][0]['Path']
+                try:
+                    cmdline_ = cmdline.CmdLine.get_cmdline(self.context, kernel.symbol_table_name, proc)
+                except exceptions.InvalidAddressException:
+                    cmdline_ = None
 
-            # setting mandatory fields
-            proc_info = dict(pid=pid,
-                             ppid=proc.InheritedFromUniqueProcessId,
-                             process_path=process_path,
-                             image_type=str(32 if proc.get_is_wow64() else 64))
+                process_path = 'N/A'
+                if dll_by_pid.get(pid):
+                    process_path = dll_by_pid[pid][0]['Path']
 
-            # setting optional fields
+                # setting mandatory fields
+                proc_info = dict(pid=pid,
+                                 ppid=proc.InheritedFromUniqueProcessId,
+                                 process_path=process_path,
+                                 image_type=str(32 if proc.get_is_wow64() else 64))
 
-            if cmdline_:
-                proc_info['command_line'] = cmdline_
+                # setting optional fields
 
-            if username_by_pid.get(pid):
-                proc_info['username'] = username_by_pid.get(pid)
+                if cmdline_:
+                    proc_info['command_line'] = cmdline_
 
-            if isinstance(proc.get_create_time(), datetime):
-                proc_info['start_time'] = proc.get_create_time().timestamp()
-            else:
-                proc_info['start_time'] = time.time()
+                if username_by_pid.get(pid):
+                    proc_info['username'] = username_by_pid.get(pid)
 
-            processes_info[pid] = proc_info
+                if isinstance(proc.get_create_time(), datetime):
+                    proc_info['start_time'] = proc.get_create_time().timestamp()
+                else:
+                    proc_info['start_time'] = time.time()
+
+                processes_info[pid] = proc_info
+            except exceptions.PagedInvalidAddressException:
+                vollog.debug('Exception during plugin execution might cause partial results', exc_info=True)
 
         return processes_info
 
