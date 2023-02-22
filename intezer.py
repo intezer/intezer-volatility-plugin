@@ -289,7 +289,7 @@ class Intezer(interfaces.plugins.PluginInterface):
             try:
                 treegrid.populate(visitor)
             except exceptions.PagedInvalidAddressException:
-                vollog.debug('Exception during plugin execution might cause partial results', exc_info=True)
+                vollog.warning('Exception during plugin execution might cause partial results', exc_info=True)
 
             column_names = [c.name for c in treegrid.columns]
             result = [dict(zip(column_names, row)) for row in rows]
@@ -387,7 +387,7 @@ class Intezer(interfaces.plugins.PluginInterface):
 
                 processes_info[pid] = proc_info
             except exceptions.PagedInvalidAddressException:
-                vollog.debug('Exception during plugin execution might cause partial results', exc_info=True)
+                vollog.warning('Exception getting process information might cause partial results', exc_info=True)
 
         return processes_info
 
