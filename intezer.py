@@ -3,7 +3,6 @@
 #
 import concurrent.futures
 import hashlib
-import http
 import itertools
 import json
 import sys
@@ -16,10 +15,12 @@ import time
 import typing
 from urllib.parse import urljoin
 import contextlib
+from http import HTTPStatus
 
 from volatility3.cli import text_renderer
 from volatility3.framework import exceptions, interfaces, renderers, automagic, plugins
 from volatility3.framework.configuration import requirements
+# noinspection PyUnresolvedReferences
 from volatility3.plugins.windows import info, pslist, envars, dlllist, cmdline, malfind
 
 import requests
@@ -92,19 +93,29 @@ class IntezerProxy(contextlib.AbstractContextManager):
         if 'Authorization' not in self._session.headers:
             response = requests.post(f'{self.api_url}/{API_VERSION}/get-access-token', json={'api_key': self.api_key})
 
-            if response.status_code == http.HTTPStatus.UNAUTHORIZED:
+            if response.status_code == HTTPStatus.UNAUTHORIZED:
                 vollog.error('Invalid Intezer API key')
 
             response.raise_for_status()
             access_token = response.json()['result']
             self._session.headers['Authorization'] = f'Bearer {access_token}'
 
-    @tenacity.retry(retry=tenacity.retry_if_exception_type(requests.exceptions.RequestException),
-                    stop=tenacity.stop_after_attempt(2),
+    @tenacity.retry(retry=tenacity.retry_if_exception_type((requests.exceptions.ConnectionError, tenacity.TryAgain)),
+                    stop=tenacity.stop_after_attempt(3),
+                    wait=tenacity.wait_fixed(1),
                     reraise=True)
-    def _post(self, url_path, **kwargs):
+    def _post(self, url_path, assert_response=True, **kwargs):
         self.init_access_token()
         response = self._session.post(url_path, **kwargs)
+        if response.status_code in (HTTPStatus.BAD_GATEWAY, HTTPStatus.GATEWAY_TIMEOUT, HTTPStatus.SERVICE_UNAVAILABLE):
+            try:
+                response.raise_for_status()
+            except requests.exceptions.HTTPError as ex:
+                raise tenacity.TryAgain() from ex
+
+        if assert_response:
+            response.raise_for_status()
+
         return response
 
     def start_scan(self, host_info):
@@ -117,9 +128,9 @@ class IntezerProxy(contextlib.AbstractContextManager):
                 'options': {'analyze': True},
                 'scan_type': SCAN_TYPE_MEMORY_DUMP_ANALYSIS}
 
-        response = self._post(f'{self.api_url}/scans', json=data)
+        response = self._post(f'{self.api_url}/scans', assert_response=False, json=data)
 
-        if response.status_code == http.HTTPStatus.FORBIDDEN:
+        if response.status_code == HTTPStatus.FORBIDDEN:
             vollog.error("Memory scan isn't available for user or no available quota. "
                          "Contact support@intezer.com for assistance")
 
@@ -133,42 +144,35 @@ class IntezerProxy(contextlib.AbstractContextManager):
                                    'profile': profile,
                                    'computer_name': computer_name}
                      }
-        response = self._post(f'{self.scans_url}/scans/{self.scan_id}/host-info', json=host_info)
-        response.raise_for_status()
+        self._post(f'{self.scans_url}/scans/{self.scan_id}/host-info', json=host_info)
 
     def send_processes_info(self, ps_list):
-        response = self._post(
+        self._post(
             f'{self.scans_url}/scans/{self.scan_id}/processes-info',
             json={'processes_info': ps_list})
-        response.raise_for_status()
 
     def send_loaded_modules_info(self, pid, loaded_modules_list):
-        response = self._post(f'{self.scans_url}/scans/{self.scan_id}/processes/{pid}/loaded-modules-info',
-                              json={'loaded_modules_info': loaded_modules_list})
-        response.raise_for_status()
+        self._post(f'{self.scans_url}/scans/{self.scan_id}/processes/{pid}/loaded-modules-info',
+                   json={'loaded_modules_info': loaded_modules_list})
 
     def send_injected_modules_info(self, injected_module_list):
-        response = self._post(f'{self.scans_url}/scans/{self.scan_id}/injected-modules-info',
-                              json={'injected_modules_info': injected_module_list})
-        response.raise_for_status()
+        self._post(f'{self.scans_url}/scans/{self.scan_id}/injected-modules-info',
+                   json={'injected_modules_info': injected_module_list})
 
     def send_memory_module_dumps_info(self, memory_modules_info):
         response = self._post(f'{self.scans_url}/scans/{self.scan_id}/memory-module-dumps-info',
                               json={'memory_module_dumps_info': memory_modules_info})
-        response.raise_for_status()
         return response.json()['result']
 
     def upload_collected_binaries(self, dump_file_path, collected_from):
         with open(dump_file_path, 'rb') as file_to_upload:
-            response = self._post(f'{self.scans_url}/scans/{self.scan_id}/{collected_from}/collected-binaries',
-                                  headers={'Content-Type': 'application/octet-stream'},
-                                  data=file_to_upload)
-            response.raise_for_status()
+            self._post(f'{self.scans_url}/scans/{self.scan_id}/{collected_from}/collected-binaries',
+                       headers={'Content-Type': 'application/octet-stream'},
+                       data=file_to_upload)
 
     def end_scan(self, end_reason):
-        response = self._post(f'{self.scans_url}/scans/{self.scan_id}/end',
-                              json={'end_time': time.time(), 'reason': end_reason})
-        response.raise_for_status()
+        self._post(f'{self.scans_url}/scans/{self.scan_id}/end',
+                   json={'end_time': time.time(), 'reason': end_reason})
         if end_reason == END_REASONS['DONE']:
             vollog.info(
                 'Analysis sent successfully, You can see your analysis at: '
@@ -184,7 +188,7 @@ class Intezer(interfaces.plugins.PluginInterface):
     """
 
     _required_framework_version = (2, 0, 0)
-    _version = (1, 0, 2)
+    _version = (1, 0, 3)
 
     @classmethod
     def get_requirements(cls) -> typing.List[interfaces.configuration.RequirementInterface]:
