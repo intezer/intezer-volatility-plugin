@@ -5,7 +5,7 @@ Intezer plugin for Volatility 3 - memory dump analysis using Intezer.
 - Detects and analyzes malware, memory injections, and other threats in memory images.
 - Supports all Windows versions
 - Requires [Volatility 3](https://github.com/volatilityfoundation/volatility3) (for Intezer Volatility 2 plugin, please get in touch with support@intezer.com)
-- If you're looking to scan live machines, see [Intezer's endpoint scanner](https://support.intezer.com/hc/en-us/articles/360021350340-Conducting-Live-Endpoint-Analysis)
+- If you're looking to scan live machines, see [Intezer's endpoint scanner](https://docs.intezer.com/docs/live-endpoint-analysis)
 
 ## How it works
 - Dumps loaded modules and potential injections
