@@ -199,7 +199,7 @@ class Intezer(interfaces.plugins.PluginInterface):
             requirements.VersionRequirement(name='pslist', component=pslist.PsList, version=(2, 0, 0)),
             requirements.VersionRequirement(name='info', component=info.Info, version=(1, 0, 0)),
             requirements.VersionRequirement(name='envars', component=envars.Envars, version=(1, 0, 0)),
-            requirements.VersionRequirement(name='dlllist', component=dlllist.DllList, version=(2, 0, 0)),
+            requirements.VersionRequirement(name='dlllist', component=dlllist.DllList, version=(3, 0, 0)),
             requirements.VersionRequirement(name='cmdline', component=cmdline.CmdLine, version=(1, 0, 0)),
             requirements.VersionRequirement(name='malfind', component=malfind.Malfind, version=(0, 0, 0)),
             requirements.StringRequirement(name='intezer-key',
